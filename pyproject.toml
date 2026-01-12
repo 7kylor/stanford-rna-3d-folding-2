@@ -1,0 +1,83 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rna-tbm"
+version = "1.0.0"
+description = "Template-Based Modeling for RNA 3D Structure Prediction"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [
+    {name = "Stanford RNA Folding Team"}
+]
+keywords = [
+    "RNA",
+    "structure prediction",
+    "template-based modeling",
+    "bioinformatics",
+    "computational biology"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "numpy>=1.20.0",
+    "pandas>=1.3.0",
+    "scipy>=1.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+rna-tbm = "rna_tbm.cli:main"
+rna-tbm-build-db = "rna_tbm.cli:build_database"
+rna-tbm-predict = "rna_tbm.cli:predict"
+
+[project.urls]
+Homepage = "https://github.com/stanford-rna-folding/rna-tbm"
+Documentation = "https://github.com/stanford-rna-folding/rna-tbm#readme"
+Repository = "https://github.com/stanford-rna-folding/rna-tbm"
+Issues = "https://github.com/stanford-rna-folding/rna-tbm/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["rna_tbm*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=rna_tbm --cov-report=term-missing"
