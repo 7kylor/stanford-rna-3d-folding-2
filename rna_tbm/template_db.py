@@ -191,7 +191,8 @@ class TemplateDB:
                     
                     hit_counts[(pdb_id, chain_id)] += 1
         
-        # Score candidates by k-mer hit density
+        # Score candidates by normalized k-mer density
+        # Use density = hits / min(query_len, template_len) to favor high-identity partial matches
         candidates = []
         query_kmers = len(query_sequence) - self.k + 1
         
@@ -199,15 +200,26 @@ class TemplateDB:
             # Quick filter: need reasonable k-mer overlap
             if count < query_kmers * 0.1:
                 continue
-            candidates.append((pdb_id, chain_id, count))
+            
+            # Normalize by the shorter of query/template to find high-identity partial matches
+            template_len = len(self.sequences.get((pdb_id, chain_id), ''))
+            if template_len == 0:
+                continue
+            min_len = min(len(query_sequence), template_len)
+            density = count / min_len  # Hits per position in overlap region
+            
+            candidates.append((pdb_id, chain_id, count, density))
         
-        # Sort by hit count, take top candidates for alignment
-        candidates.sort(key=lambda x: -x[2])
-        candidates = candidates[:max_hits * 3]  # Over-sample then filter
+        # Sort by density (normalized score), not raw count
+        # This helps shorter templates with high identity rank higher
+        candidates.sort(key=lambda x: -x[3])
+        
+        # Increase candidate pool to catch high-identity partial matches
+        candidates = candidates[:max(max_hits * 5, 200)]
         
         # Do proper alignment for top candidates
         results = []
-        for pdb_id, chain_id, _ in candidates:
+        for pdb_id, chain_id, _, _ in candidates:
             template_seq = self.sequences[(pdb_id, chain_id)]
             
             identity, coverage, aligned_pairs = self._align_sequences(
@@ -235,8 +247,11 @@ class TemplateDB:
         template: str
     ) -> Tuple[float, float, List[Tuple[int, int]]]:
         """
-        Simple diagonal-band alignment for sequence matching.
+        Improved diagonal-band alignment for sequence matching.
         Returns (identity, coverage, aligned_pairs).
+        
+        Identity = matches / aligned_region_length (in query)
+        Coverage = aligned_positions / query_length
         """
         # Use a simple seed-and-extend approach
         # First find exact k-mer matches as seeds
@@ -266,16 +281,22 @@ class TemplateDB:
         # Determine offset from diagonal
         offset = -best_diag
         
+        # Count positions in alignment region
+        aligned_region_len = 0
+        
         for q_idx in range(len(query)):
             t_idx = q_idx + offset
             if 0 <= t_idx < len(template):
+                aligned_region_len += 1
                 if query[q_idx] == template[t_idx]:
                     aligned_pairs.append((q_idx, t_idx))
                     matches += 1
         
         # Calculate metrics
-        identity = matches / len(query) if query else 0
-        coverage = len(aligned_pairs) / len(query) if query else 0
+        # Identity: fraction of aligned region that matches
+        identity = matches / aligned_region_len if aligned_region_len > 0 else 0
+        # Coverage: fraction of query that overlaps with template
+        coverage = aligned_region_len / len(query) if query else 0
         
         return identity, coverage, aligned_pairs
     
@@ -315,8 +336,62 @@ class TemplateDB:
         db.sequences = data['sequences']
         return db
     
+    @classmethod
+    def load_from_training(cls, path: str) -> 'TemplateDB':
+        """
+        Load database from training template format (from build_training_db.py).
+        
+        The training template database has a different structure:
+        - structures: Dict[target_id, {'sequence': str, 'coords': np.ndarray, 'length': int}]
+        - kmer_index: Dict[kmer, List[target_id]]
+        """
+        from .cif_parser import Residue
+        
+        with open(path, 'rb') as f:
+            data = pickle.load(f)
+        
+        db = cls(k=6)
+        structures = data['structures']
+        
+        for target_id, struct in structures.items():
+            sequence = struct['sequence']
+            coords = struct['coords']
+            
+            # Build Residue list from sequence and coordinates
+            residues = []
+            for i, (base, coord) in enumerate(zip(sequence, coords)):
+                residues.append(Residue(
+                    resname=base,
+                    resid=i + 1,
+                    chain='A',
+                    x=float(coord[0]),
+                    y=float(coord[1]),
+                    z=float(coord[2]),
+                ))
+            
+            chain_coords = ChainCoords(
+                chain_id='A',
+                sequence=sequence,
+                residues=residues,
+            )
+            db.templates[target_id] = {'A': chain_coords}
+            db.sequences[(target_id, 'A')] = sequence
+            db.release_dates[target_id] = '2000-01-01'  # Old date to always pass temporal filter
+        
+        # Rebuild k-mer index
+        for target_id, struct in structures.items():
+            seq = struct['sequence']
+            for pos in range(len(seq) - db.k + 1):
+                kmer = seq[pos:pos+db.k]
+                if 'N' not in kmer:
+                    db.kmer_index[kmer].append((target_id, 'A', pos))
+        
+        return db
+    
     def __len__(self):
         return sum(len(chains) for chains in self.templates.values())
+
+
 
 
 def build_template_database(

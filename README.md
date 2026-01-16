@@ -97,6 +97,7 @@ mkdir -p data/{sequences,pdb_rna,msa,metadata}
 ```
 
 Or use the legacy structure (auto-detected):
+
 ```
 ├── PDB_RNA/          # CIF files
 ├── MSA/              # MSA files
@@ -148,7 +149,7 @@ for model_idx, coords in enumerate(prediction.models):
 python scripts/run_validation.py
 ```
 
-## 🔧 Configuration
+## Configuration
 
 Configuration can be customized via `PipelineConfig`:
 
@@ -177,24 +178,32 @@ config = PipelineConfig.for_testing()  # Limits files processed
 ## Pipeline Components
 
 ### CIF Parser
+
 Extracts C1' atom coordinates from mmCIF files, handling:
+
 - Modified nucleotides (50+ types mapped to A/C/G/U)
 - Multi-model structures (uses model 1 only)
 - Quoted atom names (e.g., `"C1'"`)
 
 ### Template Database
+
 Fast sequence-based retrieval using:
+
 - k-mer index (k=6) for O(1) lookup
 - Temporal filtering for competition compliance
 - Diagonal-band alignment for scoring
 
 ### Alignment
+
 Needleman-Wunsch global alignment with:
+
 - Match: +2, Mismatch: -1, Gap: -2
 - Position mapping for coordinate transfer
 
 ### Gap Filling
+
 Handles unmapped residues via:
+
 - Linear interpolation for internal gaps
 - Geometric extrapolation for terminal gaps
 - A-form helix baseline when no templates found
@@ -222,6 +231,7 @@ cp notebooks/kaggle_inference.py /path/to/kaggle/notebook.py
 The notebook includes all code in a single file with no external dependencies beyond numpy, pandas, and scipy.
 
 **Runtime estimates:**
+
 - Database build: ~2-3 hours
 - Predictions: ~30 minutes
 - **Total: ~3.5 hours** (well under 8-hour limit)

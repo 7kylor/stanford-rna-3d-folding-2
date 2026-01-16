@@ -50,6 +50,20 @@ def get_functional_module():
     from . import functional
     return functional
 
+def get_ensemble_module():
+    """Get ensemble pipeline module."""
+    from . import ensemble_pipeline
+    return ensemble_pipeline
+
+def get_confidence_module():
+    """Get confidence scoring module."""
+    from . import confidence
+    return confidence
+
+# Direct imports for convenience
+from .confidence import ConfidenceScorer, compute_tm_score
+from .ensemble_pipeline import EnsemblePipeline, EnsembleConfig, run_ensemble_pipeline
+
 __all__ = [
     # Version info
     "__version__",
@@ -90,4 +104,13 @@ __all__ = [
     "get_refinement_module",
     "get_metal_ions_module",
     "get_functional_module",
+    "get_ensemble_module",
+    "get_confidence_module",
+    # Ensemble pipeline
+    "EnsemblePipeline",
+    "EnsembleConfig", 
+    "run_ensemble_pipeline",
+    # Confidence scoring
+    "ConfidenceScorer",
+    "compute_tm_score",
 ]
