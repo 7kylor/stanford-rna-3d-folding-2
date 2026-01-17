@@ -1,6 +1,6 @@
 # RNA-TBM: Template-Based Modeling for RNA 3D Structure Prediction
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.14+](https://img.shields.io/badge/python-3.14+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance pipeline for predicting RNA 3D structures using template-based modeling with k-mer indexed search. Developed for the [Stanford RNA 3D Folding Part 2](https://www.kaggle.com/competitions/stanford-rna-3d-folding-2) Kaggle competition.
